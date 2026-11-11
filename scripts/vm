@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Build and boot a host as a VM inside the nix container. View it with a VNC client at localhost:5900.
+# --privileged: virtiofsd needs caps. virtio-vga-gl + egl-headless: niri needs a GPU (renders on the host's via virgl).
+set -euo pipefail
+host=${1:?usage: scripts/vm <host>}
+exec podman run --rm -i $([ -t 0 ] && echo -t) --replace --name nixvm -v nix:/nix -v "$PWD":/repo:z -w /repo --privileged -p 127.0.0.1:5900:5900 \
+  -e NIX_CONFIG=$'experimental-features = nix-command flakes\nfilter-syscalls = false' \
+  -e QEMU_OPTS="-vga none -device virtio-vga-gl -display egl-headless -vnc 0.0.0.0:0 -monitor unix:/tmp/mon,server,nowait ${QEMU_OPTS:-}" \
+  -e NIX_DISK_IMAGE="/tmp/$host.qcow2" \
+  docker.io/nixos/nix sh -c "
+    ln -s \$(nix build --no-link --print-out-paths .#nixosConfigurations.$host.pkgs.mesa) /run/opengl-driver
+    nix build .#nixosConfigurations.$host.config.system.build.vm -o /tmp/vm && /tmp/vm/bin/run-$host-vm"

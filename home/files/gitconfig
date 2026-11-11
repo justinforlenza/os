@@ -1,0 +1,6 @@
+[user]
+	name = Justin
+	email = justin@justinforlenza.dev
+[init]
+	defaultBranch = main
+

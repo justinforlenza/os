@@ -1,0 +1,16 @@
+name: check
+on: [push, pull_request]
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # Evaluating catches option and syntax errors without downloading packages
+      - run: |
+          for host in hosts/*/; do
+            host=$(basename "$host")
+            echo "::group::$host"
+            nix eval ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
+            echo "::endgroup::"
+          done

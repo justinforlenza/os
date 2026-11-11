@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run nix in a podman container (no Nix on the host). /nix persists in the "nix" volume.
+exec podman run --rm -i $([ -t 0 ] && echo -t) -v nix:/nix -v "$PWD":/repo:z -w /repo --device /dev/kvm \
+  -e NIX_CONFIG=$'experimental-features = nix-command flakes\nfilter-syscalls = false' \
+  docker.io/nixos/nix nix "$@"
