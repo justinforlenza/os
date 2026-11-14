@@ -56,6 +56,8 @@ in {
     };
     # Runs AppImages (Gear Lever's, or double-clicked) through an FHS wrapper; plain NixOS can't run them
     programs.appimage = { enable = true; binfmt = true; };
+    # mise downloads generic Linux binaries (Python, Node); they need a /lib64 loader NixOS lacks
+    programs.nix-ld.enable = true;
     virtualisation.podman.enable = true;
     virtualisation.docker.enable = true;
 
