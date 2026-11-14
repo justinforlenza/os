@@ -1,15 +1,12 @@
 { config, lib, pkgs, inputs, ... }:
-let
-  # Default niri config that `dms setup` writes (niri.kdl includes dms/*.kdl), from the installed DMS version
-  tpl = "${config.programs.dux-shell.package.src}/core/internal/config/embedded";
-  binds = pkgs.writeText "niri-binds.kdl"
-    (builtins.replaceStrings [ "{{TERMINAL_COMMAND}}" ] [ "ghostty" ] (builtins.readFile "${tpl}/niri-binds.kdl"));
-in lib.mkIf (config.my.desktop == "niri") {
+lib.mkIf (config.my.desktop == "niri") {
   programs.niri.enable = true;
   programs.dux-shell = {
     enable = true;
     systemd.enable = true;
-    plugins.quickCapture.src = inputs.dms-quick-capture; # screenshot annotation + screen recording
+    plugins = {
+      quickCapture.enable = true;
+    }; # screenshot annotation + screen recording, from the plugin registry
   };
   programs.dux-search.enable = true;
   programs.dux-files = {
@@ -25,6 +22,13 @@ in lib.mkIf (config.my.desktop == "niri") {
     [Settings]
     gtk-icon-theme-name=Adwaita
   '';
+
+  # Open images and videos with them by default
+  xdg.mime.defaultApplications =
+    lib.genAttrs (map (t: "image/${t}") [ "png" "jpeg" "gif" "webp" "avif" "heic" "jxl" "bmp" "tiff" "svg+xml" ])
+      (_: "org.gnome.Loupe.desktop")
+    // lib.genAttrs (map (t: "video/${t}") [ "mp4" "x-matroska" "webm" "quicktime" "x-msvideo" "mpeg" "ogg" "x-flv" ])
+      (_: "io.github.celluloid_player.Celluloid.desktop");
 
   # Dux Files: drives and USB sticks (mount/eject), network shares and trash
   services.udisks2.enable = true;
@@ -42,6 +46,7 @@ in lib.mkIf (config.my.desktop == "niri") {
   };
   environment.systemPackages = with pkgs; [
     ghostty
+    loupe celluloid # image viewer, video player (mpv-based, so most formats play without extra codecs)
     adw-gtk3 # GTK3 theme DMS's dynamic colours apply to
     adwaita-icon-theme hicolor-icon-theme # hicolor: where most apps install their own icons
     ddcutil
@@ -51,14 +56,10 @@ in lib.mkIf (config.my.desktop == "niri") {
   services.power-profiles-daemon.enable = true;
   services.printing.enable = true;
 
-  # Copied once, not symlinked: DMS rewrites these at runtime (theme colors, keybind editor)
-  home-manager.users.${config.my.user}.home.activation.niriDmsConfig =
+  # First login: DMS's own setup writes ~/.config/niri (config.kdl + dms/*.kdl), as `dms setup` does on any distro.
+  # --skip-existing: never touches a config that's already there, so DMS's runtime edits are kept.
+  home-manager.users.${config.my.user}.home.activation.dmsSetup =
     inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      d=$HOME/.config/niri
-      mkdir -p $d/dms
-      cp() { [ -e "$2" ] || { command cp "$1" "$2" && chmod u+w "$2"; }; }
-      cp ${tpl}/niri.kdl $d/config.kdl
-      cp ${binds} $d/dms/binds.kdl
-      for f in colors layout alttab input; do cp ${tpl}/niri-$f.kdl $d/dms/$f.kdl; done
+      run ${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing
     '';
 }

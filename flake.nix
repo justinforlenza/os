@@ -5,7 +5,8 @@
     disko = { url = "github:nix-community/disko"; inputs.nixpkgs.follows = "nixpkgs"; };
     nix-flatpak.url = "github:gmodena/nix-flatpak";
     claude-desktop = { url = "github:aaddrick/claude-desktop-debian"; inputs.nixpkgs.follows = "nixpkgs"; };
-    dms-quick-capture = { url = "github:hthienloc/dms-quick-capture"; flake = false; }; # DMS plugin, bumped by update.yml
+    # Every DMS plugin, packaged; updated daily upstream, bumped here by update.yml
+    dms-plugin-registry = { url = "github:duxlabs-dev/dux-plugin-registry"; inputs.nixpkgs.follows = "nixpkgs"; };
   };
 
   outputs = { self, nixpkgs, ... }@inputs:

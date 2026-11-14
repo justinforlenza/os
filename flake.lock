@@ -41,19 +41,23 @@
         "type": "github"
       }
     },
-    "dms-quick-capture": {
-      "flake": false,
+    "dms-plugin-registry": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
       "locked": {
-        "lastModified": 1789780329,
-        "narHash": "sha256-q1cuw1iCYIrgT7y46VEJGy77K2UIDnL7K+73aeDp+Nc=",
-        "owner": "hthienloc",
-        "repo": "dms-quick-capture",
-        "rev": "d9e4475404e29223fd68d60feadf2eab810d098e",
+        "lastModified": 1794661415,
+        "narHash": "sha256-564ZO4NQkLsCGfWyU1E8PwbcSzxGfT/x2JxAqCYvZR4=",
+        "owner": "duxlabs-dev",
+        "repo": "dux-plugin-registry",
+        "rev": "39545c3acd94692610a56ef3dcf79943419e4ae0",
         "type": "github"
       },
       "original": {
-        "owner": "hthienloc",
-        "repo": "dms-quick-capture",
+        "owner": "duxlabs-dev",
+        "repo": "dux-plugin-registry",
         "type": "github"
       }
     },
@@ -145,7 +149,7 @@
       "inputs": {
         "claude-desktop": "claude-desktop",
         "disko": "disko",
-        "dms-quick-capture": "dms-quick-capture",
+        "dms-plugin-registry": "dms-plugin-registry",
         "home-manager": "home-manager",
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs"
