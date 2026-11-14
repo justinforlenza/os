@@ -1,5 +1,5 @@
 { config, lib, pkgs, inputs, ... }: {
-  imports = [ inputs.home-manager.nixosModules.home-manager ];
+  imports = [ inputs.home-manager.nixosModules.home-manager inputs.disko.nixosModules.disko ];
 
   options.my.user = lib.mkOption { type = lib.types.str; default = "justin"; };
 
@@ -18,6 +18,7 @@
 
     users.users.${config.my.user} = {
       isNormalUser = true;
+      uid = 1000; # fixed so install.sh can chown from outside the chroot
       extraGroups = [ "wheel" "networkmanager" ];
       initialPassword = "changeme";
     };

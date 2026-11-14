@@ -6,5 +6,7 @@
   fileSystems."/" = { device = "/dev/disk/by-label/nixos"; fsType = "ext4"; };
   virtualisation.vmVariant.virtualisation = { memorySize = 4096; cores = 4; diskSize = 8192; };
 
+  users.users.justin.initialPassword = "changeme";
+
   system.stateVersion = "26.11";
 }

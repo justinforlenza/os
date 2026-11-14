@@ -13,6 +13,9 @@ in lib.mkIf (config.my.desktop == "niri") {
     configHome = "/home/${config.my.user}"; # greeter uses the user's DMS theme
   };
   environment.systemPackages = [ pkgs.ghostty ];
+  # Optional DMS features: power profile switching, and printers (CUPS brings cups-pk-helper with it)
+  services.power-profiles-daemon.enable = true;
+  services.printing.enable = true;
 
   # Copied once, not symlinked: DMS rewrites these at runtime (theme colors, keybind editor)
   home-manager.users.${config.my.user}.home.activation.niriDmsConfig =

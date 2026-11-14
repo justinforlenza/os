@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Build the installer ISO and copy it to ./nixos-installer.iso (or the path given).
+# The ISO carries the repo as it is now: committed and staged/modified tracked files. Untracked files are left out.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+out=$(realpath "${1:-nixos-installer.iso}")
+
+untracked=$(git ls-files --others --exclude-standard)
+[ -z "$untracked" ] || printf 'warning: not in the ISO until you git add them:\n%s\n' "$untracked" >&2
+
+scripts/nix build .#nixosConfigurations.iso.config.system.build.isoImage -o result-iso
+# The store lives in the podman "nix" volume, so copy the file out from a container
+podman run --rm -v nix:/nix -v "$PWD":/repo:z -v "$(dirname "$out")":/out:z -w /repo docker.io/nixos/nix \
+  sh -c "cp -L result-iso/iso/*.iso '/out/$(basename "$out")' && chmod u+w '/out/$(basename "$out")'"
+echo "ISO: $out"

@@ -10,5 +10,4 @@
   xdg.configFile."starship.toml".source = ./files/starship.toml;
   xdg.configFile."mise/config.toml".source = ./files/mise-config.toml;
   home.file.".gitconfig".source = ./files/gitconfig;
-  home.file.".local/bin/flathub-install" = { source = ./files/flathub-install; executable = true; };
 }

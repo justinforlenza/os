@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Test the installer: `scripts/iso-vm --iso` boots the ISO with a 30G disk (/dev/disk/by-id/virtio-testdisk),
+# `scripts/iso-vm` then boots what was installed. The disk persists in the "vmdisk" podman volume. VNC: localhost:5900.
+set -euo pipefail
+exec podman run --rm -i $([ -t 0 ] && echo -t) --replace --name nixvm -v nix:/nix -v vmdisk:/disk -v "$PWD":/repo:z -w /repo \
+  --privileged -p 127.0.0.1:5900:5900 -e NIX_CONFIG=$'experimental-features = nix-command flakes\nfilter-syscalls = false' \
+  -e WITH_ISO="${1:-}" docker.io/nixos/nix sh -c '
+    set -e
+    p() { nix build --no-link --print-out-paths ".#nixosConfigurations.iso.$1"; }
+    ln -s "$(p pkgs.mesa)" /run/opengl-driver
+    qemu=$(p pkgs.qemu_kvm) ovmf=$(p pkgs.OVMF.fd)
+    [ -e /disk/disk.qcow2 ] || "$qemu/bin/qemu-img" create -f qcow2 /disk/disk.qcow2 30G
+    cdrom=""
+    # bootindex: the ISO wins over an already-installed disk
+    [ "$WITH_ISO" = --iso ] && cdrom="-drive file=$(echo "$(p config.system.build.isoImage)"/iso/*.iso),media=cdrom,if=none,id=cd,readonly=on -device ide-cd,drive=cd,bootindex=0"
+    exec "$qemu/bin/qemu-system-x86_64" -enable-kvm -cpu host -m 6144 -smp 4 -bios "$ovmf/FV/OVMF.fd" \
+      -drive file=/disk/disk.qcow2,if=none,id=d -device virtio-blk-pci,drive=d,serial=testdisk,bootindex=1 $cdrom \
+      -nic user,model=virtio-net-pci -vga none -device virtio-vga-gl -display egl-headless -vnc 0.0.0.0:0 \
+      -monitor unix:/tmp/mon,server,nowait'
