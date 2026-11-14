@@ -4,9 +4,13 @@ lib.mkIf (config.my.desktop == "niri") {
   programs.dux-shell = {
     enable = true;
     systemd.enable = true;
+    # From the plugin registry, by ID. Installed plugins start switched off: turn them on in Settings > Plugins.
     plugins = {
-      quickCapture.enable = true;
-    }; # screenshot annotation + screen recording, from the plugin registry
+      quickCapture.enable = true; # screenshot annotation + screen recording
+      dankLauncherKeys.enable = true; # search keyboard shortcuts from the launcher
+      calculator.enable = true; # evaluate maths in the launcher
+      emojiLauncher.enable = true; # emoji & unicode characters in the launcher
+    };
   };
   programs.dux-search.enable = true;
   programs.dux-files = {
@@ -23,8 +27,9 @@ lib.mkIf (config.my.desktop == "niri") {
     gtk-icon-theme-name=Adwaita
   '';
 
-  # Open images and videos with them by default
+  # Default apps: Dux Files for folders and trash, Loupe for images, Celluloid for videos
   xdg.mime.defaultApplications =
+    { "inode/directory" = "dev.duxlabs.files.desktop"; "x-scheme-handler/trash" = "dev.duxlabs.files.desktop"; } //
     lib.genAttrs (map (t: "image/${t}") [ "png" "jpeg" "gif" "webp" "avif" "heic" "jxl" "bmp" "tiff" "svg+xml" ])
       (_: "org.gnome.Loupe.desktop")
     // lib.genAttrs (map (t: "video/${t}") [ "mp4" "x-matroska" "webm" "quicktime" "x-msvideo" "mpeg" "ogg" "x-flv" ])
@@ -56,10 +61,18 @@ lib.mkIf (config.my.desktop == "niri") {
   services.power-profiles-daemon.enable = true;
   services.printing.enable = true;
 
-  # First login: DMS's own setup writes ~/.config/niri (config.kdl + dms/*.kdl), as `dms setup` does on any distro.
-  # --skip-existing: never touches a config that's already there, so DMS's runtime edits are kept.
-  home-manager.users.${config.my.user}.home.activation.dmsSetup =
-    inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing
-    '';
+  # First login: DMS's own `dms setup` writes ~/.config/niri (config.kdl + dms/*.kdl), as on any distro.
+  # A user service before niri, not home-manager activation: setup needs the user's systemd (it registers
+  # dms.service with niri.service), which doesn't exist yet when activation runs at boot.
+  systemd.user.services.dms-setup = {
+    description = "DMS first-run niri setup";
+    wantedBy = [ "niri.service" ];
+    before = [ "niri.service" ];
+    path = [ config.systemd.package ]; # setup calls `systemctl --user`
+    unitConfig.ConditionPathExists = "!%h/.config/niri/config.kdl"; # never touch an existing config
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing";
+    };
+  };
 }
