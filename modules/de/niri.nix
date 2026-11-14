@@ -17,6 +17,15 @@ in lib.mkIf (config.my.desktop == "niri") {
     systemd.enable = true; # kept running in the background, so it opens instantly
     portal.enable = true;
   };
+  # App icons: DMS (a Qt app) finds the icon theme through Qt's platform theme, and NixOS sets none, so most
+  # launcher icons were missing. gtk3 reads the GTK settings, which DMS's Settings > Icons also writes.
+  environment.sessionVariables.QT_QPA_PLATFORMTHEME = "gtk3";
+  # System-wide default icon theme; a user's ~/.config/gtk-3.0/settings.ini (DMS writes one) overrides it
+  environment.etc."xdg/gtk-3.0/settings.ini".text = ''
+    [Settings]
+    gtk-icon-theme-name=Adwaita
+  '';
+
   # Dux Files: drives and USB sticks (mount/eject), network shares and trash
   services.udisks2.enable = true;
   services.gvfs.enable = true;
@@ -34,6 +43,7 @@ in lib.mkIf (config.my.desktop == "niri") {
   environment.systemPackages = with pkgs; [
     ghostty
     adw-gtk3 # GTK3 theme DMS's dynamic colours apply to
+    adwaita-icon-theme hicolor-icon-theme # hicolor: where most apps install their own icons
     ddcutil
     ffmpeg imagemagick img2pdf zbar (tesseract.override { enableLanguages = [ "eng" ]; }) # Quick Capture
   ];
