@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from textual import work
@@ -20,7 +21,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
 from textual.widgets import (Button, Checkbox, Footer, Header, Input, Label, LoadingIndicator, OptionList,
-                             ProgressBar, RichLog, SelectionList, Static)
+                             ProgressBar, RichLog, Select, SelectionList, Static)
 from textual.widgets.option_list import Option
 
 REPO = os.environ.get("REPO", "https://github.com/justinforlenza/os")  # override for VM testing
@@ -30,7 +31,7 @@ CFG = Path("/tmp/cfg")
 LOG = Path("/tmp/os-install.log")
 # If GitHub can't be read (offline, private repo), use the ISO's copy instead of asking for a login
 ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
-STEPS = ["Network", "Config", "Hostname", "Disk", "Desktop", "Wallpapers", "Options", "GitHub", "Password", "Summary",
+STEPS = ["Network", "Config", "Hostname", "Disk", "Desktop", "Wallpapers", "Options", "Audio", "GitHub", "Password", "Summary",
          "Install", "Done"]
 PHASES = ["Partition disk", "Write host config", "Plan downloads", "Download packages", "Install bootloader",
           "Set password", "Push to GitHub", "Finish"]
@@ -100,6 +101,41 @@ def list_disks() -> list[tuple[str, str, str]]:
         model, _, size = out("lsblk", "-dno", "MODEL,SIZE", dev).rpartition(" ")
         disks.append((dev, model.strip() or Path(dev).name, size))
     return disks
+
+
+def audio_outputs() -> list[tuple[str, str]]:
+    """(PipeWire node name, description) of each sound output. The live system runs no PipeWire, so start one
+    briefly: its names (e.g. alsa_output.usb-…analog-stereo) are the ones the installed system will use."""
+    runtime = "/tmp/os-install-pipewire"
+    os.makedirs(runtime, mode=0o700, exist_ok=True)
+    env = {**ENV, "XDG_RUNTIME_DIR": runtime}
+    daemons = [subprocess.Popen([cmd], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+               for cmd in ("pipewire", "wireplumber")]
+    found: list[tuple[str, str]] = []
+    try:
+        for _ in range(20):  # up to ~10 s; done once two reads in a row agree
+            time.sleep(0.5)
+            try:
+                nodes = json.loads(subprocess.run(["pw-dump"], env=env, capture_output=True, text=True).stdout or "[]")
+            except ValueError:
+                continue
+            now = sorted((props["node.name"], props.get("node.description") or props["node.name"])
+                         for node in nodes for props in [node.get("info", {}).get("props", {})]
+                         if props.get("media.class") == "Audio/Sink"
+                         and props.get("node.name", "").startswith("alsa_output."))
+            if now and now == found:
+                break
+            found = now
+    finally:
+        for daemon in daemons:
+            daemon.terminate()
+        for daemon in daemons:
+            try:
+                daemon.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                daemon.kill()
+    log(f"audio outputs: {found}")
+    return found
 
 
 # ------------------------------------------------------------------ layout
@@ -520,6 +556,56 @@ class OptionsScreen(Question):
 
     def on_button_pressed(self) -> None:
         self.state["options"] = list(self.query_one("#options", SelectionList).selected)
+        if "audioMixer" in self.state["options"]:
+            self.app.push_screen(AudioScreen())
+        else:
+            self.state["mixer_outputs"] = {}
+            self.app.push_screen(GitHubScreen())
+
+
+class AudioScreen(Question):
+    STEP, HEADING = "Audio", "Mixer outputs"
+    ROLES = ("headphones", "speakers")  # names for `change-mixer-output <name>` (my.audioMixerOutputs)
+
+    def body(self):
+        yield Static("[b]change-mixer-output headphones[/b] or [b]speakers[/b] sends the Main Mix to the device "
+                     "picked here. Plug them in first; skip either with None. Change later in hosts/<name>.",
+                     classes="muted")
+        yield LoadingIndicator()
+        with Vertical(id="roles", classes="hidden"):
+            for role in self.ROLES:
+                yield Label(role.capitalize())
+                yield Select([], prompt="None", id=role)
+        yield Static("", id="audio-note")
+        with Horizontal(classes="buttons"):
+            yield Button("Next", variant="primary", id="next", disabled=True)
+
+    def on_mount(self) -> None:
+        self.load()
+
+    @work(exclusive=True)
+    async def load(self) -> None:
+        if "audio_devices" not in self.state:
+            self.state["audio_devices"] = await asyncio.to_thread(audio_outputs)
+        devices = self.state["audio_devices"]
+        chosen = self.state.get("mixer_outputs", {})
+        for role in self.ROLES:
+            select = self.query_one(f"#{role}", Select)
+            select.set_options([(desc, name) for name, desc in devices])
+            if chosen.get(role) in dict(devices):
+                select.value = chosen[role]
+        if not devices:
+            self.query_one("#audio-note", Static).update(
+                "[yellow]No sound outputs found.[/yellow] Add them to hosts/<name> after installing "
+                "(names from [b]wpctl status -n[/b]).")
+        self.query_one(LoadingIndicator).remove()
+        self.query_one("#roles").remove_class("hidden")
+        self.query_one("#next", Button).disabled = False
+        self.query_one(f"#{self.ROLES[0]}", Select).focus()
+
+    def on_button_pressed(self) -> None:
+        self.state["mixer_outputs"] = {role: value for role in self.ROLES
+                                       if (value := self.query_one(f"#{role}", Select).value) != Select.NULL}
         self.app.push_screen(GitHubScreen())
 
 
@@ -649,11 +735,12 @@ class SummaryScreen(Question):
         s = self.state
         github = f"logged in, will push hosts/{s['hostname']}" if s["github"] else "skipped"
         desktop = s["desktop"] + (f"  [dim]wallpapers:[/dim] {s['wallpapers']}" if s.get("wallpapers") else "")
+        audio = "".join(f"[dim]  {role:<8}[/dim]   {node}\n" for role, node in s.get("mixer_outputs", {}).items())
         yield Static(
             f"[dim]Hostname[/dim]   [b]{s['hostname']}[/b]\n"
             f"[dim]Disk    [/dim]   [b]{s['disk_desc']}[/b]  [dim]{s['disk']}[/dim]\n"
             f"[dim]Desktop [/dim]   {desktop}\n"
-            f"[dim]Options [/dim]   {', '.join(s['options']) or 'none'}\n"
+            f"[dim]Options [/dim]   {', '.join(s['options']) or 'none'}\n{audio}"
             f"[dim]GitHub  [/dim]   {github}\n"
             f"[dim]NixOS   [/dim]   {self.app.release}",
             classes="panel")
@@ -725,6 +812,9 @@ class InstallScreen(Step):
         options = "\n".join(f"  my.{name} = {str(name in s['options']).lower()};"
                             for name in sorted(s.get("all_options", {})))
         wallpapers = f'\n  my.wallpapers = "{s["wallpapers"]}";' if s.get("wallpapers") else ""
+        if s.get("mixer_outputs"):
+            options += "\n  my.audioMixerOutputs = {\n" + "".join(
+                f'    {role} = "{node}";\n' for role, node in s["mixer_outputs"].items()) + "  };"
         (host / "default.nix").write_text(f"""{{
   imports = [ ./hardware-configuration.nix ];
   disko.devices = (import ../../disko.nix {{ device = "{s['disk']}"; }}).disko.devices;

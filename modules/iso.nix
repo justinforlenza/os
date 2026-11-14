@@ -34,7 +34,8 @@
     git gh disko
     (writeShellApplication {
       name = "os-install"; # not `install`: that would shadow coreutils' install, which nixos-install uses
-      runtimeInputs = [ (python3.withPackages (p: [ p.textual ])) git gh disko curl networkmanager rsync openssh ];
+      runtimeInputs = [ (python3.withPackages (p: [ p.textual ])) git gh disko curl networkmanager rsync openssh
+        pipewire wireplumber ]; # pipewire: the Audio step lists sound outputs
       text = ''
         [ "$(id -u)" -eq 0 ] || exec sudo --preserve-env=REPO "$0" "$@"
         exec python3 ${../install.py} "$@"

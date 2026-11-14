@@ -12,7 +12,9 @@ Usage: os <command>
   enable <option>...      turn features on, apply, then commit and push hosts/$host
   disable <option>...     turn features off, same
   desktop [<name>]        show the desktop, or change it (applied at next boot; committed and pushed)
-  wallpapers [<set>]      show the wallpaper set (KDE), or change it (applied now; committed and pushed)
+  wallpapers [<set>]      show the wallpaper set, or change it (applied now; committed and pushed)
+  audio                   show the mixer's outputs and the sound devices connected now
+  audio <name> <n|none>   send \`change-mixer-output <name>\` to device n from that list (or remove it)
 EOF
 }
 
@@ -86,6 +88,45 @@ case "${1:-}" in
     else
       apply "$opt = $2"
     fi
+    ;;
+
+  audio) # my.audioMixerOutputs: the device each `change-mixer-output <name>` sends the Main Mix to
+    # Sound outputs PipeWire sees right now, as "node name<TAB>description" (same list as the installer's)
+    mapfile -t devices < <(pw-dump | jq -r '.[] | .info.props? // empty
+      | select(."media.class" == "Audio/Sink" and (."node.name" // "" | startswith("alsa_output.")))
+      | "\(."node.name")\t\(."node.description" // ."node.name")"' | sort)
+    if [ -z "${2:-}" ]; then
+      echo "Mixer outputs (change-mixer-output <name>):"
+      nix eval --json "$repo#nixosConfigurations.$host.config.my.audioMixerOutputs" |
+        jq -r 'if length == 0 then "  none set" else to_entries[] | "  \(.key) -> \(.value)" end'
+      echo "Sound outputs connected now:"
+      for i in "${!devices[@]}"; do
+        printf '  %d) %s\n     %s\n' $((i + 1)) "${devices[i]#*$'\t'}" "${devices[i]%%$'\t'*}"
+      done
+      [ ${#devices[@]} -gt 0 ] || echo "  none found"
+      echo "Set one with: os audio <name> <number|none>   e.g. os audio headphones 1"
+      exit 0
+    fi
+    role=$2 pick=${3:-}
+    [[ $role =~ ^[a-z][a-zA-Z0-9]*$ ]] && [ -n "$pick" ] || { usage >&2; exit 1; }
+    if [ "$pick" = none ]; then
+      node=""
+    elif [[ $pick =~ ^[0-9]+$ ]] && [ "$pick" -ge 1 ] && [ "$pick" -le ${#devices[@]} ]; then
+      node=${devices[pick - 1]%%$'\t'*}
+    else
+      echo "Pick a number from the list in 'os audio', or none." >&2; exit 1
+    fi
+    pull
+    block='/^  my\.audioMixerOutputs = {/,/^  };/' # the block the installer writes
+    sed -i "$block{/^    $role = /d}" "$file"
+    if [ -n "$node" ]; then
+      grep -q '^  my\.audioMixerOutputs = {' "$file" ||
+        sed -i '/^ *my\.desktop = /a\  my.audioMixerOutputs = {\n  };' "$file"
+      sed -i -e "$block{/^  };/i\\    $role = \"$node\";" -e '}' "$file"
+    fi
+    apply "audio $role = ${node:-none}"
+    [ "$(nix eval "$repo#nixosConfigurations.$host.config.my.audioMixer")" = true ] ||
+      echo "The mixer itself is off; turn it on with: os enable audioMixer"
     ;;
 
   *) usage; [ -n "${1:-}" ] && exit 1 ;;

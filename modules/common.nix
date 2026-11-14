@@ -33,7 +33,7 @@ in {
 
     environment.systemPackages = with pkgs; [
       git gh nextcloud-client protonvpn distrobox
-      (writeShellApplication { name = "os"; runtimeInputs = [ git jq gnused gnugrep util-linux ]; text = builtins.readFile ./os.sh; })
+      (writeShellApplication { name = "os"; runtimeInputs = [ git jq gnused gnugrep util-linux pipewire ]; text = builtins.readFile ./os.sh; })
       vscode zed-editor claude-code (callPackage ../pkgs/helium.nix { })
       pear-desktop protonmail-bridge-gui beeper proton-pass proton-pass-cli
       inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.claude-desktop-fhs # FHS build, so MCP servers run via npx/uvx work
