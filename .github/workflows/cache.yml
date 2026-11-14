@@ -14,8 +14,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v7
+      # The runner's free disk (~14 GB) runs out; this turns the space taken by unused preinstalled tools into /nix
+      - uses: wimpysworld/nothing-but-nix@v12
+      - uses: DeterminateSystems/nix-installer-action@v23
       # Also a substituter here, so what's already pushed counts as cached and isn't rebuilt
       - uses: cachix/cachix-action@v17
         with:

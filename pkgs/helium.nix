@@ -1,5 +1,5 @@
 # Helium browser (not in nixpkgs or Flathub): wraps the official AppImage.
-# shortcut: pinned version, bump version + hash by hand from github.com/imputnet/helium-linux/releases
+# Version and hash are bumped weekly by scripts/update-helium (run by update.yml)
 { appimageTools, fetchurl }:
 let
   pname = "helium";
