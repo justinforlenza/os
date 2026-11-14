@@ -4,7 +4,7 @@ lib.mkIf (config.my.desktop == "niri") {
   programs.dux-shell = {
     enable = true;
     systemd.enable = true;
-    # From the plugin registry, by ID. Installed plugins start switched off: turn them on in Settings > Plugins.
+    # From the plugin registry, by ID. Switched on for each user by dms-plugins below.
     plugins = {
       quickCapture.enable = true; # screenshot annotation + screen recording
       dankLauncherKeys.enable = true; # search keyboard shortcuts from the launcher
@@ -74,5 +74,23 @@ lib.mkIf (config.my.desktop == "niri") {
       Type = "oneshot";
       ExecStart = "${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing";
     };
+  };
+
+  # DMS only runs a plugin once ~/.config/dms/plugin_settings.json has it "enabled". Turn on every plugin
+  # enabled above; one the user switched off in Settings > Plugins ("enabled": false) is left off.
+  systemd.user.services.dms-plugins = {
+    description = "Switch on DMS plugins installed by NixOS";
+    wantedBy = [ "dms.service" ];
+    before = [ "dms.service" ];
+    path = [ pkgs.jq pkgs.coreutils ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      f="''${XDG_CONFIG_HOME:-$HOME/.config}/dms/plugin_settings.json"
+      mkdir -p "$(dirname "$f")"
+      [ -s "$f" ] || echo '{}' > "$f"
+      jq --argjson ids '${builtins.toJSON (lib.attrNames (lib.filterAttrs (_: p: p.enable) config.programs.dux-shell.plugins))}' \
+        'reduce $ids[] as $id (.; .[$id].enabled |= (if . == null then true else . end))' "$f" > "$f.tmp"
+      mv "$f.tmp" "$f"
+    '';
   };
 }
