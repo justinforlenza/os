@@ -1,0 +1,12 @@
+{
+  "app": {
+    "version": "4.19.0",
+    "url": "https://repo.protonvpn.com/debian/dists/stable/main/binary-all/proton-vpn-gtk-app_4.19.0_all.deb",
+    "sha256": "ad7c95252e05516b0d615026968ce49c4177157b379e5a2dcf64a69a74123157"
+  },
+  "core": {
+    "version": "6.1.1",
+    "url": "https://repo.protonvpn.com/debian/dists/stable/main/binary-amd64/python3-proton-vpn-api-core_6.1.1_amd64.deb",
+    "sha256": "e55937c7701062efbb85289e16d0a1c662b2dcadf585681484075296b23e3571"
+  }
+}

@@ -1,5 +1,5 @@
 name: update
-# Weekly (and from the Actions tab): bump flake.lock and Helium, check every host still evaluates, open a PR.
+# Weekly (and from the Actions tab): bump flake.lock, Helium and Proton VPN, check every host still evaluates, open a PR.
 # Merging it = machines update on their next daily autoUpgrade (and iso.yml builds a new ISO).
 on:
   schedule:
@@ -16,6 +16,7 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake update
       - run: scripts/update-helium
+      - run: scripts/update-proton-vpn
       # Checks run here: a PR opened with GITHUB_TOKEN doesn't trigger check.yml
       - name: Evaluate hosts
         run: |
@@ -25,12 +26,16 @@ jobs:
             nix eval ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
             echo "::endgroup::"
           done
-      - name: Build Helium # evaluating doesn't fetch it, so a wrong hash would only show up on the machines
-        run: nix build --impure --no-link --expr '(builtins.getFlake "path:'"$PWD"'").inputs.nixpkgs.legacyPackages.x86_64-linux.callPackage ./pkgs/helium.nix { }'
+      - name: Build Helium and Proton VPN # evaluating doesn't fetch them, so a bad hash or package would only show up on the machines
+        run: |
+          for p in ./pkgs/helium.nix ./pkgs/proton-vpn; do
+            nix build --impure --no-link --expr "(import (builtins.getFlake \"path:$PWD\").inputs.nixpkgs {
+              system = \"x86_64-linux\"; config.allowUnfree = true; }).callPackage $p { }"
+          done
       - uses: peter-evans/create-pull-request@v8
         with:
           branch: update
           delete-branch: true
-          commit-message: Update flake.lock and Helium
-          title: Update flake.lock and Helium
-          body: Weekly update from the `update` workflow. Every host evaluated and Helium built.
+          commit-message: Update flake.lock, Helium and Proton VPN
+          title: Update flake.lock, Helium and Proton VPN
+          body: Weekly update from the `update` workflow. Every host evaluated; Helium and Proton VPN built.
