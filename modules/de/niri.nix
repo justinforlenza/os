@@ -100,22 +100,28 @@ lib.mkIf (config.my.desktop == "niri") {
   # DMS's wallpaper picker and cycling start in ~/.wallpapers (the my.wallpapers set). Only fills them in
   # while unset, so a folder picked later in DMS sticks.
   systemd.user.services.dms-wallpapers = {
-    description = "Point DMS at ~/.wallpapers";
+    description = "DMS wallpaper defaults: ~/.wallpapers, changing hourly";
     wantedBy = [ "dms.service" ];
     before = [ "dms.service" ];
-    path = [ pkgs.jq pkgs.coreutils ];
+    path = [ pkgs.jq pkgs.coreutils pkgs.findutils ];
     serviceConfig.Type = "oneshot";
     script = ''
+      d=$HOME/.wallpapers
+      # Shown until the first change: the set's first image (trailing /: ~/.wallpapers is a symlink)
+      first=$(find "$d/" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort | head -n 1)
       seed() { # file, jq filter
         mkdir -p "$(dirname "$1")"
         [ -s "$1" ] || echo '{}' > "$1"
-        jq --arg d "$HOME/.wallpapers" "$2" "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+        jq --arg d "$d" --arg first "$first" "$2" "$1" > "$1.tmp" && mv "$1.tmp" "$1"
       }
       # Picker's starting folder: DMS copies this into an empty fileBrowserSettings.wallpaper.lastPath
       seed "''${XDG_CACHE_HOME:-$HOME/.cache}/dms/cache.json" '.wallpaperLastPath //= $d'
-      # Folder for Settings > Wallpaper > automatic cycling
-      seed "''${XDG_STATE_HOME:-$HOME/.local/state}/dms/session.json" \
-        'if (.wallpaperCyclingFolderPath // "") == "" then .wallpaperCyclingFolderPath = $d else . end'
+      # Settings > Wallpaper: a new one from ~/.wallpapers every hour (each only if not set yet)
+      seed "''${XDG_STATE_HOME:-$HOME/.local/state}/dms/session.json" '
+        (if (.wallpaperCyclingFolderPath // "") == "" then .wallpaperCyclingFolderPath = $d else . end)
+        | (if has("wallpaperCyclingEnabled") then . else .wallpaperCyclingEnabled = true end)
+        | (if has("wallpaperCyclingInterval") then . else .wallpaperCyclingInterval = 3600 end)
+        | (if (.wallpaperPath // "") == "" and $first != "" then .wallpaperPath = $first else . end)'
     '';
   };
 }
