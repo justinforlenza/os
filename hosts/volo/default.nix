@@ -6,7 +6,7 @@
   my.wallpapers = "single";
   my.fingerprint = true;
   my.gaming = false;
-  my.meshagent = false;
+  my.meshagent = true;
 
   system.stateVersion = "26.11"; # release this machine was installed with; never change it
 }
