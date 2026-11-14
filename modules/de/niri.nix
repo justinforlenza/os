@@ -17,6 +17,9 @@ in lib.mkIf (config.my.desktop == "niri") {
     systemd.enable = true; # kept running in the background, so it opens instantly
     portal.enable = true;
   };
+  # Dux Files: drives and USB sticks (mount/eject), network shares and trash
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
   # Open/save dialogs use Dux Files (the rest of niri's portal config comes from the niri module)
   xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = "dfiles";
   # Quick Capture's tools: recording, thumbnails, exports, OCR, QR scanning
