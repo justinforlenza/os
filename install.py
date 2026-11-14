@@ -148,7 +148,7 @@ class Sidebar(Static):
 
     def render(self) -> str:
         here = STEPS.index(self.current)
-        lines = ["[b]NixOS[/b]", "[dim]installer[/dim]", ""]
+        lines = ["[b]ForlenzaOS[/b]", "[dim]installer[/dim]", ""]
         for i, step in enumerate(STEPS):
             if i < here:
                 lines.append(f"[green]✓[/green] [dim]{step}[/dim]")
@@ -456,7 +456,7 @@ class HostnameScreen(Question):
 
 
 class DiskScreen(Question):
-    STEP, HEADING = "Disk", "Where should NixOS go?"
+    STEP, HEADING = "Disk", "Where should ForlenzaOS go?"
 
     def body(self):
         disks = list_disks()
@@ -742,7 +742,7 @@ class SummaryScreen(Question):
             f"[dim]Desktop [/dim]   {desktop}\n"
             f"[dim]Options [/dim]   {', '.join(s['options']) or 'none'}\n{audio}"
             f"[dim]GitHub  [/dim]   {github}\n"
-            f"[dim]NixOS   [/dim]   {self.app.release}",
+            f"[dim]Base    [/dim]   NixOS {self.app.release}",
             classes="panel")
         yield Static(f"[b red]Everything on {s['disk_desc']} will be erased.[/]  "
                      f"Type [b]{s['hostname']}[/b] to confirm:")
@@ -956,7 +956,7 @@ class DoneScreen(Step):
 # ------------------------------------------------------------------ app
 class Installer(App):
     ENABLE_COMMAND_PALETTE = False
-    TITLE = "NixOS installer"
+    TITLE = "ForlenzaOS installer"
     SUB_TITLE = OWNER_REPO
     CSS = """
     #sidebar { width: 20; padding: 1 2; border-right: tall $panel; height: 100%; }

@@ -97,6 +97,31 @@ lib.mkIf (config.my.desktop == "niri") {
     '';
   };
 
+  # Bar launcher button shows the ForlenzaOS logo (DMS's "os" logo mode only knows a fixed list of distros).
+  # Fresh install: a minimal settings.json at config version 1, which DMS migrates into a full bar config keeping
+  # this entry. Existing settings: only launcher buttons whose logo mode was never set get it.
+  systemd.user.services.dms-launcher-logo = {
+    description = "Point DMS's launcher button at the ForlenzaOS logo";
+    wantedBy = [ "dms.service" ];
+    before = [ "dms.service" ];
+    path = [ pkgs.jq pkgs.coreutils ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      f="''${XDG_CONFIG_HOME:-$HOME/.config}/dms/settings.json"
+      logo=/run/current-system/sw/share/icons/hicolor/scalable/apps/forlenza-os.svg
+      mkdir -p "$(dirname "$f")"
+      [ -s "$f" ] || echo '{"configVersion":1,"dankBarLeftWidgets":["launcherButton","workspaceSwitcher","focusedWindow"]}' > "$f"
+      jq --arg p "$logo" '
+        def brand: if type == "string" then {id: ., enabled: true} else . end
+          | if .launcherLogoMode == null then .launcherLogoMode = "custom" | .launcherLogoCustomPath = $p else . end;
+        def fix: map(if . == "launcherButton" or (type == "object" and .id == "launcherButton") then brand else . end);
+        def lists: with_entries(if (.value | type) == "array" and (.key | test("^(left|center|right)Widgets$|^dankBarLeftWidgets$"))
+          then .value |= fix else . end);
+        lists | if .barConfigs then .barConfigs |= map(lists) else . end' "$f" > "$f.tmp"
+      mv "$f.tmp" "$f"
+    '';
+  };
+
   # DMS's wallpaper picker and cycling start in ~/.wallpapers (the my.wallpapers set). Only fills them in
   # while unset, so a folder picked later in DMS sticks.
   systemd.user.services.dms-wallpapers = {

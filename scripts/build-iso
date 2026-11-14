@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Build the installer ISO and copy it to ./nixos-installer.iso (or the path given).
+# Build the installer ISO and copy it to ./forlenza-os-installer.iso (or the path given).
 # The ISO carries the repo as it is now: committed and staged/modified tracked files. Untracked files are left out.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-out=$(realpath "${1:-nixos-installer.iso}")
+out=$(realpath "${1:-forlenza-os-installer.iso}")
 
 untracked=$(git ls-files --others --exclude-standard)
 [ -z "$untracked" ] || printf 'warning: not in the ISO until you git add them:\n%s\n' "$untracked" >&2

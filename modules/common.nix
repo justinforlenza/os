@@ -14,6 +14,10 @@ in {
 
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
+    # Boot splash: ForlenzaOS logo (with the firmware's logo, where it has one) instead of kernel text
+    boot.plymouth = { enable = true; logo = "${pkgs.callPackage ../branding { }}/share/icons/hicolor/96x96/apps/forlenza-os.png"; };
+    boot.consoleLogLevel = 3;
+    boot.kernelParams = [ "quiet" "splash" "udev.log_level=3" "systemd.show_status=auto" ];
     networking.networkmanager = {
       enable = true;
       # protun: the tunnel behind Proton VPN's Smart and Stealth protocols; OpenVPN: its OpenVPN protocols

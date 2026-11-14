@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [install.py, disko.nix, modules/iso.nix, flake.nix, flake.lock]
+    paths: [install.py, disko.nix, modules/iso.nix, modules/branding.nix, branding/**, flake.nix, flake.lock]
 permissions:
   contents: write # create the tag and release
 concurrency: # a newer push replaces a build still running
@@ -28,10 +28,10 @@ jobs:
       - name: Build ISO
         run: |
           nix build .#nixosConfigurations.iso.config.system.build.isoImage -o result-iso
-          cp -L result-iso/iso/*.iso "nixos-installer-$VERSION.iso"
+          cp -L result-iso/iso/*.iso "forlenza-os-installer-$VERSION.iso"
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$VERSION" "nixos-installer-$VERSION.iso" \
+          gh release create "$VERSION" "forlenza-os-installer-$VERSION.iso" \
             --target "$GITHUB_SHA" --title "$VERSION" --generate-notes

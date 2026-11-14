@@ -1,6 +1,7 @@
 # Installer ISO: build with scripts/build-iso
 { lib, pkgs, modulesPath, inputs, ... }: {
-  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ./cache.nix ];
+  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ./cache.nix ./branding.nix ];
+  image.baseName = lib.mkForce "forlenza-os-installer";
 
   # The repo as of the build (tracked files, including uncommitted changes) and the commit it was built on.
   # os-install starts from this and offers GitHub's latest if it differs.
