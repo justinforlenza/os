@@ -96,4 +96,26 @@ lib.mkIf (config.my.desktop == "niri") {
       mv "$f.tmp" "$f"
     '';
   };
+
+  # DMS's wallpaper picker and cycling start in ~/.wallpapers (the my.wallpapers set). Only fills them in
+  # while unset, so a folder picked later in DMS sticks.
+  systemd.user.services.dms-wallpapers = {
+    description = "Point DMS at ~/.wallpapers";
+    wantedBy = [ "dms.service" ];
+    before = [ "dms.service" ];
+    path = [ pkgs.jq pkgs.coreutils ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      seed() { # file, jq filter
+        mkdir -p "$(dirname "$1")"
+        [ -s "$1" ] || echo '{}' > "$1"
+        jq --arg d "$HOME/.wallpapers" "$2" "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+      }
+      # Picker's starting folder: DMS copies this into an empty fileBrowserSettings.wallpaper.lastPath
+      seed "''${XDG_CACHE_HOME:-$HOME/.cache}/dms/cache.json" '.wallpaperLastPath //= $d'
+      # Folder for Settings > Wallpaper > automatic cycling
+      seed "''${XDG_STATE_HOME:-$HOME/.local/state}/dms/session.json" \
+        'if (.wallpaperCyclingFolderPath // "") == "" then .wallpaperCyclingFolderPath = $d else . end'
+    '';
+  };
 }

@@ -30,7 +30,7 @@ CFG = Path("/tmp/cfg")
 LOG = Path("/tmp/os-install.log")
 # If GitHub can't be read (offline, private repo), use the ISO's copy instead of asking for a login
 ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
-STEPS = ["Network", "Config", "Hostname", "Disk", "Desktop", "Options", "GitHub", "Password", "Summary",
+STEPS = ["Network", "Config", "Hostname", "Disk", "Desktop", "Wallpapers", "Options", "GitHub", "Password", "Summary",
          "Install", "Done"]
 PHASES = ["Partition disk", "Write host config", "Plan downloads", "Download packages", "Install bootloader",
           "Set password", "Push to GitHub", "Finish"]
@@ -451,6 +451,26 @@ class DesktopScreen(Question):
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         self.state["desktop"] = event.option.id
+        self.app.push_screen(WallpapersScreen())
+
+
+class WallpapersScreen(Question):
+    STEP, HEADING = "Wallpapers", "Pick a wallpaper set"
+
+    def body(self):
+        # The sets are the folders in wallpapers/ (my.wallpapers in modules/options/wallpapers.nix)
+        how = ("Plasma shows a new one every hour, spread across all your monitors."
+               if self.state["desktop"] == "kde" else
+               "DMS's wallpaper picker and automatic cycling start in this set's folder.")
+        yield Static(f"{how} Change it later with [b]os wallpapers <set>[/b].", classes="muted")
+        sets = sorted(d for d in (CFG / "wallpapers").iterdir() if d.is_dir())
+        yield OptionList(*(Option(f"[b]{d.name}[/b]\n[dim]{n} wallpapers[/dim]" if n else
+                                  f"[b]{d.name}[/b]\n[dim]empty for now[/dim]", id=d.name)
+                           for d in sets for n in [sum(1 for f in d.iterdir() if not f.name.startswith("."))]),
+                         id="wallpapers")
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        self.state["wallpapers"] = event.option.id
         self.app.push_screen(OptionsScreen())
 
 
@@ -628,10 +648,11 @@ class SummaryScreen(Question):
     def body(self):
         s = self.state
         github = f"logged in, will push hosts/{s['hostname']}" if s["github"] else "skipped"
+        desktop = s["desktop"] + (f"  [dim]wallpapers:[/dim] {s['wallpapers']}" if s.get("wallpapers") else "")
         yield Static(
             f"[dim]Hostname[/dim]   [b]{s['hostname']}[/b]\n"
             f"[dim]Disk    [/dim]   [b]{s['disk_desc']}[/b]  [dim]{s['disk']}[/dim]\n"
-            f"[dim]Desktop [/dim]   {s['desktop']}\n"
+            f"[dim]Desktop [/dim]   {desktop}\n"
             f"[dim]Options [/dim]   {', '.join(s['options']) or 'none'}\n"
             f"[dim]GitHub  [/dim]   {github}\n"
             f"[dim]NixOS   [/dim]   {self.app.release}",
@@ -703,11 +724,12 @@ class InstallScreen(Step):
         host.mkdir(parents=True)
         options = "\n".join(f"  my.{name} = {str(name in s['options']).lower()};"
                             for name in sorted(s.get("all_options", {})))
+        wallpapers = f'\n  my.wallpapers = "{s["wallpapers"]}";' if s.get("wallpapers") else ""
         (host / "default.nix").write_text(f"""{{
   imports = [ ./hardware-configuration.nix ];
   disko.devices = (import ../../disko.nix {{ device = "{s['disk']}"; }}).disko.devices;
 
-  my.desktop = "{s['desktop']}";
+  my.desktop = "{s['desktop']}";{wallpapers}
 {options}
 
   system.stateVersion = "{self.app.release}"; # release this machine was installed with; never change it

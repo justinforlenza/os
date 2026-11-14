@@ -12,6 +12,7 @@ Usage: os <command>
   enable <option>...      turn features on, apply, then commit and push hosts/$host
   disable <option>...     turn features off, same
   desktop [<name>]        show the desktop, or change it (applied at next boot; committed and pushed)
+  wallpapers [<set>]      show the wallpaper set (KDE), or change it (applied now; committed and pushed)
 EOF
 }
 
@@ -64,18 +65,27 @@ case "${1:-}" in
     apply "$(tr ' ' , <<<"$*") = $value"
     ;;
 
-  desktop)
-    choices=$(nix eval --json "$repo#nixosConfigurations.$host.options.my.desktop.type.functor.payload.values")
-    current=$(nix eval --raw "$repo#nixosConfigurations.$host.config.my.desktop")
+  desktop | wallpapers) # a my.* setting with a fixed list of values
+    opt=$1
+    choices=$(nix eval --json "$repo#nixosConfigurations.$host.options.my.$opt.type.functor.payload.values")
+    current=$(nix eval --raw "$repo#nixosConfigurations.$host.config.my.$opt")
     if [ -z "${2:-}" ]; then
-      echo "Desktop: $current (choices: $(jq -r 'join(", ")' <<<"$choices"))"; exit 0
+      echo "$opt: $current (choices: $(jq -r 'join(", ")' <<<"$choices"))"; exit 0
     fi
     jq -e --arg d "$2" 'index($d)' <<<"$choices" >/dev/null ||
-      { echo "Unknown desktop '$2'. Choices: $(jq -r 'join(", ")' <<<"$choices")" >&2; exit 1; }
+      { echo "Unknown $opt '$2'. Choices: $(jq -r 'join(", ")' <<<"$choices")" >&2; exit 1; }
     pull
-    sed -i "s/^\( *my\.desktop = \).*;/\1\"$2\";/" "$file"
-    apply "desktop = $2" boot # the login screen changes too; switching it live would end this session
-    echo "Reboot to use $2."
+    if grep -q "^ *my\.$opt = " "$file"; then
+      sed -i "s/^\( *my\.$opt = \).*;/\1\"$2\";/" "$file"
+    else # a setting added after this machine was installed
+      sed -i "/^ *my\.desktop = /a\\  my.$opt = \"$2\";" "$file"
+    fi
+    if [ "$opt" = desktop ]; then
+      apply "desktop = $2" boot # the login screen changes too; switching it live would end this session
+      echo "Reboot to use $2."
+    else
+      apply "$opt = $2"
+    fi
     ;;
 
   *) usage; [ -n "${1:-}" ] && exit 1 ;;
