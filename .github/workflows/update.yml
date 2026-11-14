@@ -1,0 +1,36 @@
+name: update
+# Weekly (and from the Actions tab): bump flake.lock and Helium, check every host still evaluates, open a PR.
+# Merging it = machines update on their next daily autoUpgrade (and iso.yml builds a new ISO).
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix flake update
+      - run: scripts/update-helium
+      # Checks run here: a PR opened with GITHUB_TOKEN doesn't trigger check.yml
+      - name: Evaluate hosts
+        run: |
+          for host in hosts/*/; do
+            host=$(basename "$host")
+            echo "::group::$host"
+            nix eval ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath"
+            echo "::endgroup::"
+          done
+      - name: Build Helium # evaluating doesn't fetch it, so a wrong hash would only show up on the machines
+        run: nix build --impure --no-link --expr '(builtins.getFlake "path:'"$PWD"'").inputs.nixpkgs.legacyPackages.x86_64-linux.callPackage ./pkgs/helium.nix { }'
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: update
+          delete-branch: true
+          commit-message: Update flake.lock and Helium
+          title: Update flake.lock and Helium
+          body: Weekly update from the `update` workflow. Every host evaluated and Helium built.

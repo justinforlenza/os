@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Build every package the hosts install that no binary cache has yet (unfree apps, pkgs/, flake-input apps).
+# cache.yml runs it so Cachix gets those builds. Packages the caches already have are skipped, not downloaded.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+drvs=()
+for host in hosts/*/; do
+  mapfile -t -O "${#drvs[@]}" drvs < <(nix eval --json \
+    ".#nixosConfigurations.$(basename "$host").config.environment.systemPackages" --apply 'map (p: p.drvPath)' | jq -r '.[]')
+done
+# A dry run lists what would be built (vs. fetched from a cache); build only that
+mapfile -t todo < <(nix build --dry-run --no-link "${drvs[@]/%/^*}" 2>&1 |
+  sed -n '/will be built:$/,/will be fetched/s|^ *\(/nix/store/.*\.drv\)$|\1|p')
+echo "${#todo[@]} derivations to build"
+[ "${#todo[@]}" -eq 0 ] || nix build --no-link -L "${todo[@]/%/^*}"

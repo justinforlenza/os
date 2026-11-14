@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Point pkgs/helium.nix at Helium's latest GitHub release (version + hash). Run by update.yml; needs nix, curl, jq.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+f=pkgs/helium.nix
+latest=$(curl -fsSL https://api.github.com/repos/imputnet/helium-linux/releases/latest | jq -r .tag_name)
+current=$(sed -n 's/^ *version = "\(.*\)";/\1/p' "$f")
+[ "$latest" != "$current" ] || { echo "Helium $current is the latest"; exit 0; }
+hash=$(nix store prefetch-file --json \
+  "https://github.com/imputnet/helium-linux/releases/download/$latest/helium-$latest-x86_64.AppImage" | jq -r .hash)
+sed -i "s|^\( *version = \)\".*\";|\1\"$latest\";|; s|^\( *hash = \)\".*\";|\1\"$hash\";|" "$f"
+echo "Helium $current -> $latest"

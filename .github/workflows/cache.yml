@@ -1,0 +1,24 @@
+name: cache
+# Builds what cache.nixos.org doesn't have (unfree apps, pkgs/, flake-input apps like Claude Desktop) and pushes it
+# to the justinforlenza-os Cachix cache, so machines download it instead of building it themselves.
+# A machine that upgrades before this finishes just builds those packages itself.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [flake.nix, flake.lock, "pkgs/**", "modules/**", "hosts/**"]
+concurrency: # a newer push replaces a build still running
+  group: cache
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # Also a substituter here, so what's already pushed counts as cached and isn't rebuilt
+      - uses: cachix/cachix-action@v17
+        with:
+          name: justinforlenza-os
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - run: scripts/build-uncached
