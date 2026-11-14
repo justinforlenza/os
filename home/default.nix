@@ -1,4 +1,4 @@
-{ pkgs, osConfig, ... }: {
+{ lib, pkgs, osConfig, ... }: {
   home.stateVersion = osConfig.system.stateVersion;
   home.packages = with pkgs; [ eza fzf bat zoxide mise starship ];
 
@@ -9,5 +9,7 @@
 
   xdg.configFile."starship.toml".source = ./files/starship.toml;
   xdg.configFile."mise/config.toml".source = ./files/mise-config.toml;
+  # Included from DMS's config.kdl (see dms-setup in modules/de/niri.nix)
+  xdg.configFile."niri/custom.kdl" = lib.mkIf (osConfig.my.desktop == "niri") { source = ./files/niri/custom.kdl; };
   home.file.".gitconfig".source = ./files/gitconfig;
 }

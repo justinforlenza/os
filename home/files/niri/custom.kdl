@@ -1,0 +1,12 @@
+// Your niri settings, managed by home-manager (home/files/niri/custom.kdl).
+// DMS's config.kdl includes this file last, so what you set here overrides DMS's defaults.
+// Reference: https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction
+
+// Browser, editor and files launch the xdg default app for their type, so changing a default app changes the bind too
+binds {
+    Mod+Shift+B hotkey-overlay-title="Browser" { spawn-sh "gtk-launch \"$(xdg-mime query default x-scheme-handler/https)\""; }
+    // Replaces DMS's Mod+Shift+N notepad-expand (Mod+N still opens the notepad)
+    Mod+Shift+N hotkey-overlay-title="Text Editor" { spawn-sh "gtk-launch \"$(xdg-mime query default text/plain)\""; }
+    Mod+Shift+A hotkey-overlay-title="Claude" { spawn "claude-desktop"; }
+    Mod+E hotkey-overlay-title="Files" { spawn-sh "gtk-launch \"$(xdg-mime query default inode/directory)\""; }
+}

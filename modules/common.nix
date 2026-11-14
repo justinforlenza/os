@@ -22,6 +22,7 @@ in {
     hardware.bluetooth.enable = true;
     hardware.enableRedistributableFirmware = true;
     zramSwap.enable = true;
+    time.timeZone = lib.mkDefault "America/New_York"; # a host file can override it
 
     users.users.${config.my.user} = {
       isNormalUser = true;

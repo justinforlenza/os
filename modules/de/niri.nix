@@ -55,6 +55,7 @@ lib.mkIf (config.my.desktop == "niri") {
     adw-gtk3 # GTK3 theme DMS's dynamic colours apply to
     adwaita-icon-theme hicolor-icon-theme # hicolor: where most apps install their own icons
     ddcutil
+    gtk3 # gtk-launch: custom.kdl's browser/editor/files binds start the default app by its desktop file
     ffmpeg imagemagick img2pdf zbar (tesseract.override { enableLanguages = [ "eng" ]; }) # Quick Capture
   ];
   # Optional DMS features: power profile switching, and printers (CUPS brings cups-pk-helper with it)
@@ -64,16 +65,18 @@ lib.mkIf (config.my.desktop == "niri") {
   # First login: DMS's own `dms setup` writes ~/.config/niri (config.kdl + dms/*.kdl), as on any distro.
   # A user service before niri, not home-manager activation: setup needs the user's systemd (it registers
   # dms.service with niri.service), which doesn't exist yet when activation runs at boot.
+  # Every login: make sure config.kdl includes custom.kdl (home-manager's, home/files/niri/custom.kdl), last so it wins.
   systemd.user.services.dms-setup = {
     description = "DMS first-run niri setup";
     wantedBy = [ "niri.service" ];
     before = [ "niri.service" ];
-    path = [ config.systemd.package ]; # setup calls `systemctl --user`
-    unitConfig.ConditionPathExists = "!%h/.config/niri/config.kdl"; # never touch an existing config
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing";
-    };
+    path = [ config.systemd.package pkgs.gnugrep ]; # setup calls `systemctl --user`
+    serviceConfig.Type = "oneshot";
+    script = ''
+      f=~/.config/niri/config.kdl
+      [ -e "$f" ] || ${config.programs.dux-shell.package}/bin/dms setup headless --compositor niri --skip-existing
+      grep -qF 'include optional=true "custom.kdl"' "$f" || printf '\ninclude optional=true "custom.kdl"\n' >> "$f"
+    '';
   };
 
   # DMS only runs a plugin once ~/.config/dms/plugin_settings.json has it "enabled". Turn on every plugin
