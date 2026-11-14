@@ -37,6 +37,7 @@ in {
 
   config = lib.mkIf config.my.audioMixer {
     environment.systemPackages = [ change-mixer-output ];
+    my.justfiles = [ ./audio-mixer.just ]; # ojust audio, ojust mixer-output
     # Virtual sinks + loopbacks into the Main Mix, from the old dotfiles
     home-manager.users.${config.my.user}.xdg.configFile = {
       "pipewire/pipewire.conf.d/10-virtual-mixer.conf".source = ../../home/files/pipewire/10-virtual-mixer.conf;

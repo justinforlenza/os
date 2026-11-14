@@ -1,1 +1,1 @@
-{ imports = [ ./common.nix ./cache.nix ./de ./options ]; }
+{ imports = [ ./common.nix ./cache.nix ./just ./de ./options ]; }

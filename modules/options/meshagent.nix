@@ -1,4 +1,4 @@
-# MeshCentral remote-management agent. Idle until /etc/meshagent.env exists; `sudo meshagent-enroll` writes it.
+# MeshCentral remote-management agent. Idle until /etc/meshagent.env exists; `ojust enroll-meshagent` (sudo meshagent-enroll) writes it.
 { config, lib, pkgs, ... }:
 let
   enroll = pkgs.writeShellApplication {
@@ -11,6 +11,7 @@ in {
 
   config = lib.mkIf config.my.meshagent {
     environment.systemPackages = [ enroll ];
+    my.justfiles = [ ./meshagent.just ]; # ojust enroll-meshagent
     programs.nix-ld.enable = true; # the downloaded agent is a generic Linux binary
     systemd.services.meshagent = {
       description = "MeshCentral agent";

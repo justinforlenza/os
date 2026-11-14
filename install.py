@@ -498,7 +498,7 @@ class WallpapersScreen(Question):
         how = ("Plasma shows a new one every hour, spread across all your monitors."
                if self.state["desktop"] == "kde" else
                "DMS's wallpaper picker and automatic cycling start in this set's folder.")
-        yield Static(f"{how} Change it later with [b]os wallpapers <set>[/b].", classes="muted")
+        yield Static(f"{how} Change it later with [b]ojust wallpapers[/b].", classes="muted")
         sets = sorted(d for d in (CFG / "wallpapers").iterdir() if d.is_dir())
         yield OptionList(*(Option(f"[b]{d.name}[/b]\n[dim]{n} wallpapers[/dim]" if n else
                                   f"[b]{d.name}[/b]\n[dim]empty for now[/dim]", id=d.name)
@@ -568,8 +568,8 @@ class AudioScreen(Question):
     ROLES = ("headphones", "speakers")  # names for `change-mixer-output <name>` (my.audioMixerOutputs)
 
     def body(self):
-        yield Static("[b]change-mixer-output headphones[/b] or [b]speakers[/b] sends the Main Mix to the device "
-                     "picked here. Plug them in first; skip either with None. Change later in hosts/<name>.",
+        yield Static("[b]ojust mixer-output headphones[/b] or [b]speakers[/b] sends the Main Mix to the device "
+                     "picked here. Plug them in first; skip either with None. Change later with [b]ojust audio[/b].",
                      classes="muted")
         yield LoadingIndicator()
         with Vertical(id="roles", classes="hidden"):
@@ -943,7 +943,7 @@ class DoneScreen(Step):
         elif s["github"]:
             lines.append(f"hosts/{s['hostname']} was pushed to GitHub; this machine's SSH key was added.")
         if "meshagent" in s["options"]:
-            lines += ["", "After logging in, enroll MeshCentral with:  [b]sudo meshagent-enroll[/b]"]
+            lines += ["", "After logging in, enroll MeshCentral with:  [b]ojust enroll-meshagent[/b]"]
         yield Static("\n".join(lines), classes="panel")
         with Horizontal(classes="buttons"):
             yield Button("Exit to shell", id="shell")
