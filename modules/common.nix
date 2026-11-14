@@ -25,6 +25,7 @@
 
     environment.systemPackages = with pkgs; [
       git gh nextcloud-client proton-vpn distrobox
+      (writeShellApplication { name = "os"; runtimeInputs = [ git jq gnused gnugrep util-linux ]; text = builtins.readFile ./os.sh; })
       vscode zed-editor claude-code (callPackage ../pkgs/helium.nix { })
       inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.claude-desktop-fhs # FHS build, so MCP servers run via npx/uvx work
     ];
