@@ -1,1 +1,1 @@
-{ imports = [ ./gaming.nix ./meshagent.nix ]; }
+{ imports = [ ./fprintd.nix ./gaming.nix ./meshagent.nix ]; }
