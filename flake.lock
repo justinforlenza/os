@@ -79,6 +79,29 @@
         "type": "github"
       }
     },
+    "hex": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794753624,
+        "narHash": "sha256-UC4V1j1udCHiOkEQdE5nzEYfLtVSXBKTmieR5GxpdJY=",
+        "owner": "anomalyco",
+        "repo": "hex",
+        "rev": "0932d092fdf0345608a8b4e3ea90a91f0ce65f55",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anomalyco",
+        "repo": "hex",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -150,6 +173,7 @@
         "claude-desktop": "claude-desktop",
         "disko": "disko",
         "dms-plugin-registry": "dms-plugin-registry",
+        "hex": "hex",
         "home-manager": "home-manager",
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs"

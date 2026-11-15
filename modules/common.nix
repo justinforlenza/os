@@ -47,6 +47,7 @@ in {
       vscode zed-editor claude-code (callPackage ../pkgs/helium.nix { })
       pear-desktop protonmail-bridge-gui beeper proton-pass proton-pass-cli
       inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.claude-desktop-fhs # FHS build, so MCP servers run via npx/uvx work
+      inputs.hex.packages.${pkgs.stdenv.hostPlatform.system}.hex
     ];
     # Apps from Flatpak repos (nix-flatpak leaves hand-installed Flatpaks alone)
     services.flatpak = {
