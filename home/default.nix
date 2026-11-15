@@ -9,6 +9,8 @@
 
   xdg.configFile."starship.toml".source = ./files/starship.toml;
   xdg.configFile."mise/config.toml".source = ./files/mise-config.toml;
+  # Read-only once linked: Zed can't save changes made in its UI; edit home/files/zed/settings.json instead. force: replaces the existing file
+  xdg.configFile."zed/settings.json" = { source = ./files/zed/settings.json; force = true; };
   # Included from DMS's config.kdl (see dms-setup in modules/de/niri.nix)
   xdg.configFile."niri/custom.kdl" = lib.mkIf (osConfig.my.desktop == "niri") { source = ./files/niri/custom.kdl; };
   home.file.".gitconfig".source = ./files/gitconfig;
