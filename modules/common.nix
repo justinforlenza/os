@@ -48,7 +48,10 @@ in {
       pear-desktop protonmail-bridge-gui beeper proton-pass proton-pass-cli
       inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.claude-desktop-fhs # FHS build, so MCP servers run via npx/uvx work
       inputs.hex.packages.${pkgs.stdenv.hostPlatform.system}.hex
+      stirling-pdf-desktop pangolin-cli
     ];
+    fonts.packages = [ pkgs.nerd-fonts.monaspace ]; # includes Monaspace Neon Nerd Font
+    services.netbird.enable = true; # client daemon; the tray UI comes with graphical sessions
     # Apps from Flatpak repos (nix-flatpak leaves hand-installed Flatpaks alone)
     services.flatpak = {
       enable = true;
@@ -60,6 +63,7 @@ in {
         "app.zen_browser.zen"
         "io.github.kolunmi.Bazaar" # app store
         "it.mijorus.gearlever" # AppImage manager
+        "org.libreoffice.LibreOffice"
         "com.rustdesk.RustDesk" # the nixpkgs build is broken (Nov 2026)
         { appId = "de.vito0912.yaabsa"; origin = "yaabsa"; } # Audiobookshelf client
       ];
