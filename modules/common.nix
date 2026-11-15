@@ -56,7 +56,7 @@ in {
         { name = "yaabsa"; location = "https://vito0912.github.io/yaabsa/de.vito0912.yaabsa.flatpakrepo"; } # developer's own repo
       ];
       packages = [
-        "app.zen_browser.zen" "eu.betterbird.Betterbird"
+        "app.zen_browser.zen"
         "io.github.kolunmi.Bazaar" # app store
         "it.mijorus.gearlever" # AppImage manager
         "com.rustdesk.RustDesk" # the nixpkgs build is broken (Nov 2026)

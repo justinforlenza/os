@@ -27,9 +27,10 @@ lib.mkIf (config.my.desktop == "niri") {
     gtk-icon-theme-name=Adwaita
   '';
 
-  # Default apps: Dux Files for folders and trash, Loupe for images, Celluloid for videos
+  # Default apps: Dux Files for folders and trash, Hylki for mail links, Loupe for images, Celluloid for videos
   xdg.mime.defaultApplications =
-    { "inode/directory" = "dev.duxlabs.files.desktop"; "x-scheme-handler/trash" = "dev.duxlabs.files.desktop"; } //
+    { "inode/directory" = "dev.duxlabs.files.desktop"; "x-scheme-handler/trash" = "dev.duxlabs.files.desktop";
+      "x-scheme-handler/mailto" = "co.hyprlab.Hylki.desktop"; } //
     lib.genAttrs (map (t: "image/${t}") [ "png" "jpeg" "gif" "webp" "avif" "heic" "jxl" "bmp" "tiff" "svg+xml" ])
       (_: "org.gnome.Loupe.desktop")
     // lib.genAttrs (map (t: "video/${t}") [ "mp4" "x-matroska" "webm" "quicktime" "x-msvideo" "mpeg" "ogg" "x-flv" ])
@@ -55,9 +56,17 @@ lib.mkIf (config.my.desktop == "niri") {
     adw-gtk3 # GTK3 theme DMS's dynamic colours apply to
     adwaita-icon-theme hicolor-icon-theme # hicolor: where most apps install their own icons
     ddcutil
+    gnome-online-accounts-gtk # adds GNOME Online Accounts accounts (Hylki) without GNOME Settings
     gtk3 # gtk-launch: custom.kdl's browser/editor/files binds start the default app by its desktop file
     ffmpeg imagemagick img2pdf zbar (tesseract.override { enableLanguages = [ "eng" ]; }) # Quick Capture
   ];
+  # Hylki mail client (trial). Its accounts come from GNOME Online Accounts and contacts from evolution-data-server,
+  # both on the host. Accounts are added in the "Online Accounts" app (Hylki's own "Open Online Accounts" button
+  # wants GNOME Settings, which is left out: it pulls in ~290 MiB).
+  services.flatpak.remotes = [ { name = "hylki"; location = "https://hylki.hyprlab.co/flatpak/co.hyprlab.Hylki.flatpakrepo"; } ];
+  services.flatpak.packages = [ { appId = "co.hyprlab.Hylki"; origin = "hylki"; } ];
+  services.gnome.gnome-online-accounts.enable = true;
+  services.gnome.evolution-data-server.enable = true;
   # Optional DMS features: power profile switching, and printers (CUPS brings cups-pk-helper with it)
   services.power-profiles-daemon.enable = true;
   services.printing.enable = true;

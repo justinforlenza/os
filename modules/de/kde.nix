@@ -12,6 +12,8 @@ in lib.mkIf (config.my.desktop == "kde") {
   services.displayManager.sddm = { enable = true; wayland.enable = true; };
 
   environment.systemPackages = [ change-wallpaper ];
+  services.flatpak.packages = [ "eu.betterbird.Betterbird" ]; # mail client (niri uses Hylki)
+  xdg.mime.defaultApplications."x-scheme-handler/mailto" = "eu.betterbird.Betterbird.desktop";
   my.justfiles = [ ./kde.just ]; # ojust wallpaper
   # A new wallpaper every hour, while a Plasma session is running
   systemd.user.services.change-wallpaper = {
