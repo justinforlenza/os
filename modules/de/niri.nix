@@ -59,6 +59,33 @@ lib.mkIf (config.my.desktop == "niri") {
     gnome-online-accounts-gtk # adds GNOME Online Accounts accounts (Hylki) without GNOME Settings
     gtk3 # gtk-launch: custom.kdl's browser/editor/files binds start the default app by its desktop file
     ffmpeg imagemagick img2pdf zbar (tesseract.override { enableLanguages = [ "eng" ]; }) # Quick Capture
+    # Hold-to-talk for Hex (custom.kdl's Ctrl+Alt+Space). Niri has no key-release binds, and Hex's own shortcut
+    # doesn't work under niri, so: niri re-runs this on every key repeat while the bind is held, and the first
+    # run (holding the lock) starts dictation and stops it once the repeats stop coming.
+    # shortcut: waiting on the niri release after 26.04, which adds press {} / release {} binds (DMS's
+    # Settings > Keybinds "Release" option writes these too). Once nixpkgs has it, delete hex-ptt and use in custom.kdl:
+    #   Ctrl+Alt+Space { press { spawn "hex" "dictation" "start"; }; release { spawn "hex" "dictation" "stop"; }; }
+    (writeShellApplication {
+      name = "hex-ptt";
+      runtimeInputs = [ coreutils util-linux ];
+      text = ''
+        f=''${XDG_RUNTIME_DIR:-/tmp}/hex-ptt
+        now() { date +%s%3N; }
+        now > "$f.$$" && mv "$f.$$" "$f" # atomic, so the watcher never reads a half-written stamp
+        exec 9>"$f.lock"
+        flock -n 9 || exit 0 # a repeat: the watcher is already running
+        hex dictation start 9>&-
+        first=$(<"$f")
+        # shortcut: assumes niri's default repeat (600 ms delay, 25/s); change the gaps if input.keyboard sets others
+        gap=700 # until the first repeat arrives
+        while sleep 0.05; do
+          last=$(<"$f")
+          [ "$last" = "$first" ] || gap=150
+          (( $(now) - last > gap )) && break
+        done
+        hex dictation stop 9>&-
+      '';
+    })
   ];
   # Hylki mail client (trial). Its accounts come from GNOME Online Accounts and contacts from evolution-data-server,
   # both on the host. Accounts are added in the "Online Accounts" app (Hylki's own "Open Online Accounts" button

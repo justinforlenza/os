@@ -10,5 +10,8 @@ binds {
     Mod+Shift+A hotkey-overlay-title="Claude" { spawn "claude-desktop"; }
     // Replaces DMS's Print screenshot; Ctrl+Print and Alt+Print are left as they are
     Print hotkey-overlay-title="Quick Capture" { spawn "dms" "ipc" "call" "quickCapture" "toggle"; }
+    // Hold to dictate with Hex, release to stop (hex-ptt in modules/de/niri.nix); needs key repeat, so no repeat=false.
+    // shortcut: becomes a native press/release bind after the next niri release (see the note at hex-ptt)
+    Ctrl+Alt+Space hotkey-overlay-title="Dictate (hold)" { spawn "hex-ptt"; }
     Mod+E hotkey-overlay-title="Files" { spawn-sh "gtk-launch \"$(xdg-mime query default inode/directory)\""; }
 }
