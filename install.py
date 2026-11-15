@@ -494,15 +494,15 @@ class WallpapersScreen(Question):
     STEP, HEADING = "Wallpapers", "Pick a wallpaper set"
 
     def body(self):
-        # The sets are the folders in wallpapers/ (my.wallpapers in modules/options/wallpapers.nix)
+        # The sets are the folders in github:justinforlenza/wallpapers, pinned in wallpapers/sources.json
+        # (my.wallpapers in modules/options/wallpapers.nix)
         how = ("Plasma shows a new one every hour, spread across all your monitors."
                if self.state["desktop"] == "kde" else
                "DMS's wallpaper picker and automatic cycling start in this set's folder.")
         yield Static(f"{how} Change it later with [b]ojust wallpapers[/b].", classes="muted")
-        sets = sorted(d for d in (CFG / "wallpapers").iterdir() if d.is_dir())
-        yield OptionList(*(Option(f"[b]{d.name}[/b]\n[dim]{n} wallpapers[/dim]" if n else
-                                  f"[b]{d.name}[/b]\n[dim]empty for now[/dim]", id=d.name)
-                           for d in sets for n in [sum(1 for f in d.iterdir() if not f.name.startswith("."))]),
+        about = {"single": "one normal monitor", "ultrawide": "one ultrawide monitor", "triple": "three monitors"}
+        sets = sorted(json.loads((CFG / "wallpapers/sources.json").read_text())["hashes"])
+        yield OptionList(*(Option(f"[b]{name}[/b]\n[dim]{about.get(name, '')}[/dim]", id=name) for name in sets),
                          id="wallpapers")
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
