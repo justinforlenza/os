@@ -59,6 +59,7 @@ lib.mkIf (config.my.desktop == "niri") {
     gnome-online-accounts-gtk # adds GNOME Online Accounts accounts (Hylki) without GNOME Settings
     gtk3 # gtk-launch: custom.kdl's browser/editor/files binds start the default app by its desktop file
     ffmpeg imagemagick img2pdf zbar (tesseract.override { enableLanguages = [ "eng" ]; }) # Quick Capture
+    wl-clipboard wtype # Hex: copies the transcript with wl-copy, pastes it into apps with wtype (niri's virtual keyboard)
     # Hold-to-talk for Hex (custom.kdl's Ctrl+Alt+Space). Niri has no key-release binds, and Hex's own shortcut
     # doesn't work under niri, so: niri re-runs this on every key repeat while the bind is held, and the first
     # run (holding the lock) starts dictation and stops it once the repeats stop coming.
