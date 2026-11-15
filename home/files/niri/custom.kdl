@@ -8,5 +8,7 @@ binds {
     // Replaces DMS's Mod+Shift+N notepad-expand (Mod+N still opens the notepad)
     Mod+Shift+N hotkey-overlay-title="Text Editor" { spawn-sh "gtk-launch \"$(xdg-mime query default text/plain)\""; }
     Mod+Shift+A hotkey-overlay-title="Claude" { spawn "claude-desktop"; }
+    // Replaces DMS's Print screenshot; Ctrl+Print and Alt+Print are left as they are
+    Print hotkey-overlay-title="Quick Capture" { spawn "dms" "ipc" "call" "quickCapture" "toggle"; }
     Mod+E hotkey-overlay-title="Files" { spawn-sh "gtk-launch \"$(xdg-mime query default inode/directory)\""; }
 }

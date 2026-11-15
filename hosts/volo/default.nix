@@ -7,6 +7,7 @@
   my.fingerprint = true;
   my.gaming = false;
   my.meshagent = true;
+  services.upower.enable = true; # laptop battery in DMS (niri doesn't turn UPower on)
 
   system.stateVersion = "26.11"; # release this machine was installed with; never change it
 }
